@@ -5,15 +5,14 @@
  *  This file contains the assembly code for the PowerPC 
  *  exception veneers for RTEMS.
  *
- * $Id$
+ * vectors.S,v 1.3 2002/05/14 17:10:17 joel Exp
  */
 	
 
 
+#include <asm.h>
+#include <rtems/score/cpu.h>
 #include <bsp/vectors.h>
-#include <libcpu/cpu.h>
-#include <rtems/score/targopts.h>
-#include "asm.h"
 	
 
 #define SYNC \
