@@ -5,15 +5,14 @@
  *  This file contains the assembly code for the PowerPC 
  *  exception veneers for RTEMS.
  *
- * $Id$
+ * vectors.S,v 1.3 2002/05/14 17:10:17 joel Exp
  */
 	
 
 
+#include <asm.h>
+#include <rtems/score/cpu.h>
 #include <bsp/vectors.h>
-#include <libcpu/cpu.h>
-#include <rtems/score/targopts.h>
-#include "asm.h"
 	
 
 #define SYNC \
@@ -86,6 +85,10 @@ SYM (push_normalized_frame):
 	stw	r30,  EXC_CTR_OFFSET(r1)
 	mfxer	r28
 	stw	r28,  EXC_XER_OFFSET(r1)
+	mfmsr	r28
+	stw	r28,  EXC_MSR_OFFSET(r1)
+	mfdar	r28
+	stw	r28,  EXC_DAR_OFFSET(r1)
         /*
          * compute SP at exception entry
          */

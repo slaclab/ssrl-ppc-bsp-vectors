@@ -1,8 +1,7 @@
 ##
-## $Id$
+## Makefile.am,v 1.5 2002/03/28 00:41:50 joel Exp
 ##
 
-AUTOMAKE_OPTIONS = foreign 1.4
 
 C_FILES = vectors_init.c
 
