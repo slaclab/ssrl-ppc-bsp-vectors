@@ -20,6 +20,6 @@ PREINSTALL_FILES = $(PROJECT_INCLUDE)/bsp \
 
 all-local: $(PREINSTALL_FILES)
 
-EXTRA_DIST = vectors.S vectors.h vectors_init.c
+EXTRA_DIST = vectors.S vectors.h vectors_init.c exceptionhandler.c bspException.h machinecheckclear.c
 
 include $(top_srcdir)/../../../../../automake/local.am

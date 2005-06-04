@@ -16,10 +16,6 @@
 #define SRR1_MCP_EXC	(1<<(31-12))
 
 void
-BSP_machineCheckClearException(BSP_Exception_frame *, int quiet)
-	__attribute__((weak, alias("BSP_NULLSYMBOL") ));
-
-void
 BSP_printStackTrace();
 
 void
@@ -197,17 +193,24 @@ int						quiet=0;
 	}
 	
 	if (ASM_MACH_VECTOR == excPtr->_EXC_number) {
-	/* ollah , we got a machine check - this could either
+	/* We got a machine check - this could either
 	 * be a TEA, MCP or internal; let's see and provide more info
 	 */
-		if (!quiet)
+		if (!quiet) {
 			printk("Machine check; reason:");
-		if ( ! (excPtr->EXC_SRR1 & (SRR1_TEA_EXC | SRR1_MCP_EXC)) ) {
-			if (!quiet)
+			if ( ! (excPtr->EXC_SRR1 & (SRR1_TEA_EXC | SRR1_MCP_EXC)) )
 				printk("SRR1\n");
+			else {
+				if ( excPtr->EXC_SRR1 & SRR1_TEA_EXC )
+					printk("TEA\n");
+				if ( excPtr->EXC_SRR1 & SRR1_MCP_EXC )
+					printk("MCP\n");
+			}
 		}
 		if ( BSP_machineCheckClearException )
 			BSP_machineCheckClearException(excPtr, quiet);
+		else if (!quiet)
+			printk("\n");
 	} else if (ASM_DEC_VECTOR == excPtr->_EXC_number) {
 		recoverable = 1;
 	} else if (ASM_SYS_VECTOR == excPtr->_EXC_number) {
