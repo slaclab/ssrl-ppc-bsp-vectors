@@ -1,6 +1,6 @@
 /* $Id$ */
 
-/* A slightly improved exception 'default' exception handler for RTEMS / SVGM */
+/* A slightly improved exception 'default' exception handler for RTEMS */
 
 /* Author: Till Straumann <strauman@slac.stanford.edu>, 2002/5 */
 
@@ -21,21 +21,33 @@ BSP_printStackTrace();
 void
 rtemsReboot(void);
 
+#ifdef BSP_EXCEPTION_NOTEPAD
+/* allow apps to change at run-time (FYI: EPICS uses 11) */
+unsigned BSP_exception_notepad = BSP_EXCEPTION_NOTEPAD;
+#else
+/* Must use a taskvar */
 static volatile BSP_ExceptionExtension	BSP_exceptionExtension = 0;
+#endif
 
 /* whether to reboot or to loop when incurring a fatal exception */
-BSP_rebootOnException = 0;
+int BSP_rebootOnException = 0;
 
 BSP_ExceptionExtension
 BSP_exceptionHandlerInstall(BSP_ExceptionExtension e)
 {
 volatile BSP_ExceptionExtension	test;
+#ifdef BSP_EXCEPTION_NOTEPAD
+   	if (   RTEMS_SUCCESSFUL!=rtems_task_get_note(RTEMS_SELF, BSP_exception_notepad, (void*)&test)
+   	    || RTEMS_SUCCESSFUL!=rtems_task_set_note(RTEMS_SELF, BSP_exception_notepad, (uint32_t)e) )
+		return 0;
+#else
 	if ( RTEMS_SUCCESSFUL != rtems_task_variable_get(RTEMS_SELF, (void*)&BSP_exceptionExtension, (void**)&test) ) {
 		/* not yet added */
 		rtems_task_variable_add(RTEMS_SELF, (void*)&BSP_exceptionExtension, 0);
 	}
 	test = BSP_exceptionExtension;
 	BSP_exceptionExtension = e;
+#endif
 	return test;
 }
 
@@ -43,15 +55,15 @@ volatile BSP_ExceptionExtension	test;
  * a core dump easier...
  */
 struct nbsd_core_regs_ {
-	uint32_t	gpr[32];
-	uint32_t	lr;
-	uint32_t	cr;
-	uint32_t	xer;
-	uint32_t	ctr;
-	uint32_t	pc;
-	uint32_t	msr;	/* our extension */
-	uint32_t	dar;	/* our extension */
-	uint32_t	vec;	/* our extension */
+	rtems_unsigned32	gpr[32];
+	rtems_unsigned32	lr;
+	rtems_unsigned32	cr;
+	rtems_unsigned32	xer;
+	rtems_unsigned32	ctr;
+	rtems_unsigned32	pc;
+	rtems_unsigned32	msr;	/* our extension */
+	rtems_unsigned32	dar;	/* our extension */
+	rtems_unsigned32	vec;	/* our extension */
 }  _BSP_Exception_NBSD_Registers;
 
 #define nbsd _BSP_Exception_NBSD_Registers
@@ -59,30 +71,40 @@ struct nbsd_core_regs_ {
 void
 BSP_exceptionHandler(BSP_Exception_frame* excPtr)
 {
-uint32_t		note;
+rtems_unsigned32		note;
 BSP_ExceptionExtension	ext=0;
 rtems_id				id=0;
 int						recoverable = 0;
-char					*fmt="Uhuuuh, Exception %d in unknown task???\n";
+char					*fmt="Oops, Exception %d in unknown task???\n";
 int						quiet=0;
-	
+static int				nest = 0;
+
+	if ( nest++ ) {
+		/* recursive invokation */
+		printk("FATAL: Exception in exception handler\n");
+		if ( BSP_rebootOnException )
+			rtemsReboot();
+		else
+			while (1);
+	}
+
 	/* If we are in interrupt context, we are in trouble - skip the user
 	 * hook and panic
 	 */
 	if (rtems_interrupt_is_in_progress()) {
-		fmt="Aieeh, Exception %d in interrupt handler\n";
+		fmt="Oops, Exception %d in interrupt handler\n";
 	} else if ( !_Thread_Executing) {
-		fmt="Aieeh, Exception %d in initialization code\n";
+		fmt="Oops, Exception %d in initialization code\n";
 	} else {
 		/* retrieve the notepad which possibly holds an extention pointer */
 		if (RTEMS_SUCCESSFUL==rtems_task_ident(RTEMS_SELF,RTEMS_LOCAL,&id)) {
 			if (
 #ifdef BSP_EXCEPTION_NOTEPAD
-/* FIXED: as of 4.6.0 [I believe] notepads are initialized to 0 :-)
- * [was: Must not use a notepad due to unknown initial value (notepad memory is allocated from the
+/* FIXED: (about 4.6.3); notepads are now initialized to 0
+ * [earlier: Must not use a notepad due to unknown initial value (notepad memory is allocated from the
  * workspace)]!
  */
-		    	RTEMS_SUCCESSFUL==rtems_task_get_note(id, BSP_EXCEPTION_NOTEPAD, &note)
+		    	RTEMS_SUCCESSFUL==rtems_task_get_note(id, BSP_exception_notepad, &note)
 #else
 				RTEMS_SUCCESSFUL==rtems_task_variable_get(id, (void*)&BSP_exceptionExtension, (void**)&note)
 #endif
@@ -142,7 +164,7 @@ int						quiet=0;
 	
 	if (ext && ext->lowlevelHook && ext->lowlevelHook(excPtr,ext,0)) {
 		/* they did all the work and want us to do nothing! */
-		return;
+		goto leave;
 	}
 
 	if (!quiet) {
@@ -222,15 +244,15 @@ int						quiet=0;
 	 * the task_suspend
 	 */
 	if (ext && ext->lowlevelHook && ext->lowlevelHook(excPtr, ext, 1))
-		return;
+		goto leave;
 
 	if (!recoverable) {
 		if (id) {
 			/* if there's a highlevel hook, install it */
 			if (ext && ext->highlevelHook) {
-				excPtr->EXC_SRR0 = (uint32_t)ext->highlevelHook;
-				excPtr->GPR3     = (uint32_t)ext;
-				return;
+				excPtr->EXC_SRR0 = (rtems_unsigned32)ext->highlevelHook;
+				excPtr->GPR3     = (rtems_unsigned32)ext;
+				goto leave;
 			}
 			if (excPtr->EXC_SRR1 & MSR_FP) {
 				/* thread dispatching is _not_ disabled at this point; hence
@@ -242,8 +264,13 @@ int						quiet=0;
 			printk("unrecoverable exception!!! task %08x suspended\n",id);
 			rtems_task_suspend(id);
 		} else {
-			printk("PANIC, hit the reset key...\n");
-			while (1);
+			printk("FATAL: unrecoverable exception without a task context\n");
+			if ( BSP_rebootOnException )
+				rtemsReboot();
+			else
+				while (1);
 		}
 	}
+leave:
+	nest--;
 }

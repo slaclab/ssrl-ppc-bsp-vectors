@@ -54,11 +54,23 @@ BSP_exceptionHandler(BSP_Exception_frame* excPtr);
 BSP_ExceptionExtension
 BSP_exceptionHandlerInstall(BSP_ExceptionExtension e);
 
+/* If the BSP uses a notepad to store exception-handler related information
+ * then the application may change the default notepad number 
+ * by setting BSP_exception_notepad to the desired notepad number.
+ * This can be done *at startup only*, prior to the first call to
+ * BSP_exceptionHandlerInstall(). Unpredicted things may happen
+ * otherwise...
+ */
+#ifdef BSP_EXCEPTION_NOTEPAD
+/* allow apps to change at run-time (FYI: EPICS uses 11) */
+extern unsigned BSP_exception_notepad; /* = BSP_EXCEPTION_NOTEPAD, normally */
+#endif
+
 /* (optional) BSP specific routine to clear hostbridge errors and print info
  * about them. Invoked by the low-level exception handler if a machine
  * check is detected.
  */
 void
-BSP_machineCheckClearException(BSP_Exception_frame *, int quiet);
+BSP_machineCheckClearException(BSP_Exception_frame *, int quiet) __attribute__ ((weak));
 
 #endif
