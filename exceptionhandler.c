@@ -75,7 +75,7 @@ rtems_unsigned32		note;
 BSP_ExceptionExtension	ext=0;
 rtems_id				id=0;
 int						recoverable = 0;
-char					*fmt="Oops, Exception %d in unknown task???\n";
+char					*fmt="Oops, Exception %d in unknown task???";
 int						quiet=0;
 static int				nest = 0;
 
@@ -92,9 +92,9 @@ static int				nest = 0;
 	 * hook and panic
 	 */
 	if (rtems_interrupt_is_in_progress()) {
-		fmt="Oops, Exception %d in interrupt handler\n";
+		fmt="Oops, Exception %d in interrupt handler";
 	} else if ( !_Thread_Executing) {
-		fmt="Oops, Exception %d in initialization code\n";
+		fmt="Oops, Exception %d in initialization code";
 	} else {
 		/* retrieve the notepad which possibly holds an extention pointer */
 		if (RTEMS_SUCCESSFUL==rtems_task_ident(RTEMS_SELF,RTEMS_LOCAL,&id)) {
@@ -116,7 +116,7 @@ static int				nest = 0;
 			if (!quiet) {
 				printk("Task (Id 0x%08x) got ",id);
 			}
-			fmt="exception %d\n";
+			fmt="exception %d";
 		}
 	}
 
@@ -170,8 +170,12 @@ static int				nest = 0;
 	if (!quiet) {
 		/* message about exception */
 		printk(fmt, excPtr->_EXC_number);
+		if ( ASM_VEC_VECTOR == excPtr->_EXC_number ) {
+			/* give more info since this is a non-standard number */
+			printk(" (ALTIVEC unavailable)");
+		}
 		/* register dump */
-		printk("\t Next PC or Address of fault = %x, ",
+		printk("\n\t Next PC or Address of fault = %x, ",
                                    excPtr->EXC_SRR0);
 		printk("Saved MSR = %x\n", excPtr->EXC_SRR1);
 		printk("\t R0  = %08x",    excPtr->GPR0 );
