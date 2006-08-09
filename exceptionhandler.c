@@ -170,10 +170,12 @@ static int				nest = 0;
 	if (!quiet) {
 		/* message about exception */
 		printk(fmt, excPtr->_EXC_number);
+#ifdef ASM_VEC_VECTOR
 		if ( ASM_VEC_VECTOR == excPtr->_EXC_number ) {
 			/* give more info since this is a non-standard number */
 			printk(" (ALTIVEC unavailable)");
 		}
+#endif
 		/* register dump */
 		printk("\n\t Next PC or Address of fault = %x, ",
                                    excPtr->EXC_SRR0);
