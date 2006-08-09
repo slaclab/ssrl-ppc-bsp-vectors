@@ -6,6 +6,10 @@
 
 /* Author: Till Straumann <strauman@slac.stanford.edu>, 2002/5 */
 
+#ifdef __cplusplus
+  extern "C" {
+#endif
+
 #include <bsp/vectors.h>
 
 /* Two types of exception intercepting / catching is supported:
@@ -72,5 +76,9 @@ extern unsigned BSP_exception_notepad; /* = BSP_EXCEPTION_NOTEPAD, normally */
  */
 void
 BSP_machineCheckClearException(BSP_Exception_frame *, int quiet) __attribute__ ((weak));
+
+#ifdef __cplusplus
+  }
+#endif
 
 #endif
