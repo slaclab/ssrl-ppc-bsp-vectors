@@ -41,7 +41,7 @@ volatile BSP_ExceptionExtension	test;
    	    || RTEMS_SUCCESSFUL!=rtems_task_set_note(RTEMS_SELF, BSP_exception_notepad, (uint32_t)e) )
 		return 0;
 #else
-	if ( RTEMS_SUCCESSFUL != rtems_task_variable_get(RTEMS_SELF, (void*)&BSP_exceptionExtension, (void**)&test) ) {
+	if ( RTEMS_SUCCESSFUL != rtems_task_variable_get(RTEMS_SELF, (void*)&BSP_exceptionExtension, (void*)&test) ) {
 		/* not yet added */
 		rtems_task_variable_add(RTEMS_SELF, (void*)&BSP_exceptionExtension, 0);
 	}
@@ -55,15 +55,15 @@ volatile BSP_ExceptionExtension	test;
  * a core dump easier...
  */
 struct nbsd_core_regs_ {
-	rtems_unsigned32	gpr[32];
-	rtems_unsigned32	lr;
-	rtems_unsigned32	cr;
-	rtems_unsigned32	xer;
-	rtems_unsigned32	ctr;
-	rtems_unsigned32	pc;
-	rtems_unsigned32	msr;	/* our extension */
-	rtems_unsigned32	dar;	/* our extension */
-	rtems_unsigned32	vec;	/* our extension */
+	uint32_t	gpr[32];
+	uint32_t	lr;
+	uint32_t	cr;
+	uint32_t	xer;
+	uint32_t	ctr;
+	uint32_t	pc;
+	uint32_t	msr;	/* our extension */
+	uint32_t	dar;	/* our extension */
+	uint32_t	vec;	/* our extension */
 }  _BSP_Exception_NBSD_Registers;
 
 #define nbsd _BSP_Exception_NBSD_Registers
@@ -71,7 +71,7 @@ struct nbsd_core_regs_ {
 void
 BSP_exceptionHandler(BSP_Exception_frame* excPtr)
 {
-rtems_unsigned32		note;
+uint32_t		note;
 BSP_ExceptionExtension	ext=0;
 rtems_id				id=0;
 int						recoverable = 0;
@@ -108,7 +108,7 @@ static int				nest = 0;
  */
 		    	RTEMS_SUCCESSFUL==rtems_task_get_note(id, BSP_exception_notepad, &note)
 #else
-				RTEMS_SUCCESSFUL==rtems_task_variable_get(id, (void*)&BSP_exceptionExtension, (void**)&note)
+				RTEMS_SUCCESSFUL==rtems_task_variable_get(id, (void*)&BSP_exceptionExtension, (void*)&note)
 #endif
 			) {
 				ext = (BSP_ExceptionExtension)note;
@@ -258,8 +258,8 @@ static int				nest = 0;
 		if (id) {
 			/* if there's a highlevel hook, install it */
 			if (ext && ext->highlevelHook) {
-				excPtr->EXC_SRR0 = (rtems_unsigned32)ext->highlevelHook;
-				excPtr->GPR3     = (rtems_unsigned32)ext;
+				excPtr->EXC_SRR0 = (uint32_t)ext->highlevelHook;
+				excPtr->GPR3     = (uint32_t)ext;
 				goto leave;
 			}
 			if (excPtr->EXC_SRR1 & MSR_FP) {
