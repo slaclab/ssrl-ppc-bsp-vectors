@@ -81,7 +81,9 @@ static int				nest = 0;
 
 	if ( nest++ ) {
 		/* recursive invokation */
-		printk("FATAL: Exception in exception handler\n");
+		printk("FATAL: Exception %d in exception handler (PC: 0x%08x)\n",
+			excPtr->_EXC_number, excPtr->EXC_SRR0);
+		BSP_printStackTrace(excPtr);
 		if ( BSP_rebootOnException )
 			rtemsReboot();
 		else
