@@ -61,9 +61,6 @@
 void
 BSP_printStackTrace();
 
-void
-rtemsReboot(void);
-
 #ifdef BSP_EXCEPTION_NOTEPAD
 /* allow apps to change at run-time (FYI: EPICS uses 11) */
 unsigned BSP_exception_notepad = BSP_EXCEPTION_NOTEPAD;
@@ -128,7 +125,7 @@ static int				nest = 0;
 			excPtr->_EXC_number, excPtr->EXC_SRR0);
 		BSP_printStackTrace(excPtr);
 		if ( BSP_rebootOnException )
-			rtemsReboot();
+			bsp_reset();
 		else
 			while (1);
 	}
@@ -317,7 +314,7 @@ static int				nest = 0;
 		} else {
 			printk("FATAL: unrecoverable exception without a task context\n");
 			if ( BSP_rebootOnException )
-				rtemsReboot();
+				bsp_reset();
 			else
 				while (1);
 		}
