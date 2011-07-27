@@ -49,7 +49,6 @@
 
 #include <bsp.h>
 #include <bsp/vectors.h>
-#include <libcpu/raw_exception.h>
 #include <libcpu/spr.h>
 #include <rtems/bspIo.h>
 
@@ -59,7 +58,7 @@
 #define SRR1_MCP_EXC	(1<<(31-12))
 
 void
-BSP_printStackTrace();
+BSP_printStackTrace(BSP_Exception_frame *);
 
 #ifdef BSP_EXCEPTION_NOTEPAD
 /* allow apps to change at run-time (FYI: EPICS uses 11) */
